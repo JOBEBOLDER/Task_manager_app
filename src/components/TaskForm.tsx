@@ -1,28 +1,38 @@
 // components/TaskForm.tsx
 import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  KeyboardAvoidingView, 
-  Platform 
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
-import { Task } from '../types'; 
+import { Task } from '../types';
 
+/**
+ * Interface for TaskForm props
+ * @property {Task} task - Optional existing task for edit mode
+ * @property {Function} onSubmit - Handler for form submission
+ * @property {Function} onCancel - Handler for cancellation
+ */
 interface TaskFormProps {
   task?: Task; // Optional property, used for editing existing tasks
   onSubmit: (task: Omit<Task, 'id' | 'createdAt'>) => void;
   onCancel: () => void;
 }
 
+/**
+ * Form component for creating or editing tasks
+ * Handles validation and submission of task data
+ */
 const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
 
-  // If editing an existing task, populate the form
+  // Populate form fields when editing an existing task
   useEffect(() => {
     if (task) {
       setTitle(task.title);
@@ -30,72 +40,83 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
     }
   }, [task]);
 
+  /**
+   * Validates and processes form submission
+   * Ensures title is not empty before submitting
+   */
   const handleSubmit = () => {
-    // Form validation
+    // Form validation - title is required
     if (!title.trim()) {
       setError('Title cannot be empty');
       return;
     }
-    
-    setError('');
+
+    setError(''); // Clear any previous errors
+
+    // Create task object and pass to parent component
     onSubmit({
       title: title.trim(),
       description: description.trim(),
-      status: task ? task.status : 'pending',
+      status: task ? task.status : 'pending', // Preserve status when editing
     });
-    
-    // Reset form
+
+    // Reset form fields after submission
     setTitle('');
     setDescription('');
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <Text style={styles.formTitle}>{task ? 'Edit Task' : 'Add New Task'}</Text>
-      
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Title</Text>
-        <TextInput
-          style={styles.input}
-          value={title}
-          onChangeText={setTitle}
-          placeholder="Enter task title"
-        />
-      </View>
-      
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Enter task description"
-          multiline
-          numberOfLines={4}
-        />
-      </View>
-      
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.buttonText}>Cancel</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={[styles.buttonText, styles.submitButtonText]}>
-            {task ? 'Update' : 'Add'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+      >
+        {/* Dynamic title based on whether we're adding or editing */}
+        <Text style={styles.formTitle}>{task ? 'Edit Task' : 'Add New Task'}</Text>
+
+        {/* Conditional error message display */}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        {/* Task title input field */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Title</Text>
+          <TextInput
+              style={styles.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Enter task title"
+          />
+        </View>
+
+        {/* Task description input field */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+              style={[styles.input, styles.textArea]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Enter task description"
+              multiline
+              numberOfLines={4}
+          />
+        </View>
+
+        {/* Action buttons container */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+            <Text style={styles.buttonText}>Cancel</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+            <Text style={[styles.buttonText, styles.submitButtonText]}>
+              {task ? 'Update' : 'Add'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
   );
 };
 
-// Same styles as before
+// Styles for the component
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',

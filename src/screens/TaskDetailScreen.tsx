@@ -1,10 +1,10 @@
-// src/screens/TaskDetailScreen.tsx - Updated with consistent status styling
+// src/screens/TaskDetailScreen.tsx
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   Alert,
   ScrollView,
   Share
@@ -12,16 +12,22 @@ import {
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
-// Define Task interface with literal types for status
+/**
+ * Task interface with literal types for status
+ * This ensures only valid status values can be assigned
+ */
 interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'pending' | 'completed'; // Use literal union type
+  status: 'pending' | 'completed'; // Use literal union type for type safety
   createdAt: string;
 }
 
-// Define navigation types
+/**
+ * Navigation parameter list for the app's navigation stack
+ * Defines the screens and their route parameters
+ */
 type RootStackParamList = {
   Home: undefined;
   TaskDetailScreen: {
@@ -35,87 +41,105 @@ type RootStackParamList = {
   };
 };
 
+// Type definitions for navigation props
 type TaskDetailScreenRouteProp = RouteProp<RootStackParamList, 'TaskDetailScreen'>;
 type TaskDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'TaskDetailScreen'>;
 
+/**
+ * Props interface for TaskDetailScreen component
+ */
 interface TaskDetailScreenProps {
   route: TaskDetailScreenRouteProp;
   navigation: TaskDetailScreenNavigationProp;
 }
 
+/**
+ * TaskDetailScreen displays detailed information about a single task
+ * Provides options to toggle status, edit, share, or delete the task
+ */
 const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }) => {
   const { task: initialTask, onUpdate, onDelete } = route.params;
-  
+
   // Local state to manage the task
   const [task, setTask] = useState<Task>(initialTask);
-  
-  // Handle toggle status
+
+  /**
+   * Toggles task status between 'pending' and 'completed'
+   * Updates both local state and parent component
+   * Provides an undo option via alert
+   */
   const handleToggleStatus = () => {
-    // Use explicit literal type for the new status
-    const newStatus: 'pending' | 'completed' = 
-      task.status === 'completed' ? 'pending' : 'completed';
-      
+    // Use explicit literal type for the new status for type safety
+    const newStatus: 'pending' | 'completed' =
+        task.status === 'completed' ? 'pending' : 'completed';
+
     const updatedTask: Task = {
       ...task,
       status: newStatus
     };
-    
+
     // Update local state
     setTask(updatedTask);
-    
+
     // Call the onUpdate function passed from parent
     onUpdate(updatedTask);
-    
+
     // Show confirmation with option to undo
     Alert.alert(
-      'Status Changed', 
-      `Task marked as ${newStatus}`,
-      [
-        { 
-          text: 'OK', 
-          style: 'default' 
-        },
-        {
-          text: 'Undo',
-          onPress: () => {
-            // Revert back with explicit type
-            const revertedStatus: 'pending' | 'completed' = task.status;
-            const revertedTask: Task = {
-              ...task,
-              status: revertedStatus
-            };
-            setTask(revertedTask);
-            onUpdate(revertedTask);
+        'Status Changed',
+        `Task marked as ${newStatus}`,
+        [
+          {
+            text: 'OK',
+            style: 'default'
           },
-          style: 'cancel'
-        }
-      ]
+          {
+            text: 'Undo',
+            onPress: () => {
+              // Revert back with explicit type
+              const revertedStatus: 'pending' | 'completed' = task.status;
+              const revertedTask: Task = {
+                ...task,
+                status: revertedStatus
+              };
+              setTask(revertedTask);
+              onUpdate(revertedTask);
+            },
+            style: 'cancel'
+          }
+        ]
     );
   };
-  
-  // Handle edit task
+
+  /**
+   * Navigates to TaskFormScreen for editing
+   * Passes the current task and a callback for handling updates
+   */
   const handleEdit = () => {
     navigation.navigate('TaskFormScreen', {
       task,
       onSave: (updatedTask: Task) => {
         // Update local state
         setTask(updatedTask);
-        
+
         // Call the onUpdate function passed from parent
         onUpdate(updatedTask);
-        
+
         // Show a confirmation message if status was changed
         if (updatedTask.status !== task.status) {
           Alert.alert(
-            'Status Updated', 
-            `Task is now ${updatedTask.status}`
+              'Status Updated',
+              `Task is now ${updatedTask.status}`
           );
         }
       }
     });
   };
-  
-  // Share task functionality
+
+  /**
+   * Shares task details using the native Share API
+   * Formats task information for sharing
+   */
   const handleShare = async () => {
     try {
       await Share.share({
@@ -126,27 +150,34 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }
       Alert.alert('Error', 'Could not share the task');
     }
   };
-  
-  // Handle delete task
+
+  /**
+   * Prompts for confirmation before deleting a task
+   * Returns to previous screen after deletion
+   */
   const handleDelete = () => {
     Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this task?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: () => {
-            onDelete(task.id);
-            navigation.goBack();
+        'Confirm Delete',
+        'Are you sure you want to delete this task?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              onDelete(task.id);
+              navigation.goBack();
+            }
           }
-        }
-      ]
+        ]
     );
   };
-  
-  // Format date for display
+
+  /**
+   * Formats a date string to a more readable format
+   * @param dateString - ISO date string to format
+   * @returns Formatted date string (e.g., "April 19, 2025")
+   */
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -155,75 +186,82 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }
       day: 'numeric'
     });
   };
-  
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>{task.title}</Text>
-        
-        <Text style={styles.sectionTitle}>Description</Text>
-        <Text style={styles.description}>
-          {task.description || 'No description'}
-        </Text>
-        
-        <Text style={styles.sectionTitle}>Created Date</Text>
-        <Text style={styles.date}>{formatDate(task.createdAt)}</Text>
-        
-        <Text style={styles.sectionTitle}>Status</Text>
-        {/* Updated status display to match task list style */}
-        <View style={styles.statusContainer}>
-          <View style={[
-            styles.statusBadge,
-            task.status === 'completed' ? styles.completedBadge : styles.pendingBadge
-          ]}>
-            <Text style={[
-              styles.statusText,
-              task.status === 'completed' ? styles.completedText : styles.pendingText
+      <ScrollView style={styles.container}>
+        {/* Task details card */}
+        <View style={styles.card}>
+          <Text style={styles.title}>{task.title}</Text>
+
+          <Text style={styles.sectionTitle}>Description</Text>
+          <Text style={styles.description}>
+            {task.description || 'No description'}
+          </Text>
+
+          <Text style={styles.sectionTitle}>Created Date</Text>
+          <Text style={styles.date}>{formatDate(task.createdAt)}</Text>
+
+          <Text style={styles.sectionTitle}>Status</Text>
+          {/* Status badge with styling consistent with task list */}
+          <View style={styles.statusContainer}>
+            <View style={[
+              styles.statusBadge,
+              task.status === 'completed' ? styles.completedBadge : styles.pendingBadge
             ]}>
-              {task.status === 'completed' ? 'Completed' : 'Pending'}
-            </Text>
+              <Text style={[
+                styles.statusText,
+                task.status === 'completed' ? styles.completedText : styles.pendingText
+              ]}>
+                {task.status === 'completed' ? 'Completed' : 'Pending'}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-      
-      <View style={styles.buttonsContainer}>
-        <TouchableOpacity 
-          style={[
-            styles.button,
-            task.status === 'completed' ? styles.pendingButton : styles.completeButton
-          ]} 
-          onPress={handleToggleStatus}
-        >
-          <Text style={styles.buttonText}>
-            {task.status === 'completed' ? 'Mark as Pending' : 'Mark as Completed'}
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.button, styles.shareButton]} 
-          onPress={handleShare}
-        >
-          <Text style={styles.buttonText}>Share</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.button, styles.editButton]} 
-          onPress={handleEdit}
-        >
-          <Text style={styles.buttonText}>Edit</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.button, styles.deleteButton]} 
-          onPress={handleDelete}
-        >
-          <Text style={styles.buttonText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+
+        {/* Action buttons */}
+        <View style={styles.buttonsContainer}>
+          {/* Dynamic toggle status button */}
+          <TouchableOpacity
+              style={[
+                styles.button,
+                task.status === 'completed' ? styles.pendingButton : styles.completeButton
+              ]}
+              onPress={handleToggleStatus}
+          >
+            <Text style={styles.buttonText}>
+              {task.status === 'completed' ? 'Mark as Pending' : 'Mark as Completed'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Share button */}
+          <TouchableOpacity
+              style={[styles.button, styles.shareButton]}
+              onPress={handleShare}
+          >
+            <Text style={styles.buttonText}>Share</Text>
+          </TouchableOpacity>
+
+          {/* Edit button */}
+          <TouchableOpacity
+              style={[styles.button, styles.editButton]}
+              onPress={handleEdit}
+          >
+            <Text style={styles.buttonText}>Edit</Text>
+          </TouchableOpacity>
+
+          {/* Delete button */}
+          <TouchableOpacity
+              style={[styles.button, styles.deleteButton]}
+              onPress={handleDelete}
+          >
+            <Text style={styles.buttonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
   );
 };
 
+// Styles for the component
 const styles = StyleSheet.create({
   container: {
     flex: 1,

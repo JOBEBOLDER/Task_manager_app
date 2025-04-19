@@ -20,16 +20,16 @@ This version is the original version base on the instruction guideline,already m
 
 #### version 2:
 Based on several user testing I conducted, I made several improvements according to the feedback:
-1.	Task List Enhancements:
+1.	**Task List Enhancements**:
 To reduce the number of clicks required, I added two visible shortcut icons: a checkmark (✔) for completion and 
 a trash bin 🗑 for deletion. Previously, users had to click multiple times to take action; now, they can make decisions with a single tap.
-2.	Task Details Form:
+2.	**Task Details Form**:
 For consistency, I replaced the plain text status indicator with a toggle switch to manage the “Pending” status—matching the component used in the edit form. Additionally, I introduced a “Share” button to accommodate potential future functionality.
 A more distinct color scheme was applied to minimize users’ memory load by keeping key actions and options visible and easily accessible when needed.
-3.	Error Prevention:
+3.	**Error Prevention**:
 Previously, clicking the “Delete” button would immediately remove the task without warning. To prevent accidental deletions, I added a confirmation message that prompts the user to confirm the action before proceeding.
 
-![img_1.png](img_1.png)
+![img_2.png](img_2.png)
 ## Project Structure
 
 ```

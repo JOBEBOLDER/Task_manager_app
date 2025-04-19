@@ -1,8 +1,11 @@
-// src/components/TaskItem.tsx - With consistent status styling
+// src/components/TaskItem.tsx
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
-// Define Task interface with literal types for status
+/**
+ * Task interface with literal types for status
+ * Using literal types ensures only valid status values are used
+ */
 interface Task {
   id: string;
   title: string;
@@ -11,80 +14,100 @@ interface Task {
   createdAt: string;
 }
 
+/**
+ * Props for the TaskItem component
+ * Includes callbacks for task interactions
+ */
 interface TaskItemProps {
   task: Task;
-  onPress: (id: string) => void;
-  onToggleStatus: (id: string) => void;
-  onDelete: (id: string) => void;
+  onPress: (id: string) => void;         // Handler for selecting a task
+  onToggleStatus: (id: string) => void;  // Handler for toggling completion status
+  onDelete: (id: string) => void;        // Handler for deleting a task
 }
 
-const TaskItem: React.FC<TaskItemProps> = ({ 
-  task, 
-  onPress, 
-  onToggleStatus, 
-  onDelete 
-}) => {
-  // Format date to a more readable format
+/**
+ * TaskItem component displays an individual task with status indicators
+ * and action buttons for toggling status and deletion
+ */
+const TaskItem: React.FC<TaskItemProps> = ({
+                                             task,
+                                             onPress,
+                                             onToggleStatus,
+                                             onDelete
+                                           }) => {
+  /**
+   * Converts ISO date string to localized date format
+   * @param dateString - ISO date string
+   * @returns Formatted date string according to user's locale
+   */
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
-  
+
   return (
-    <TouchableOpacity 
-      style={[
-        styles.container, 
-        task.status === 'completed' && styles.completedTask
-      ]} 
-      onPress={() => onPress(task.id)}
-    >
-      <View style={styles.contentContainer}>
-        <Text style={styles.title}>{task.title}</Text>
-        <Text style={styles.description} numberOfLines={2}>
-          {task.description || 'No description'}
-        </Text>
-        <View style={styles.metaRow}>
-          <Text style={styles.date}>{formatDate(task.createdAt)}</Text>
-          
-          {/* Updated status badge to be consistent */}
-          <View style={[
-            styles.statusBadge,
-            task.status === 'completed' ? styles.completedBadge : styles.pendingBadge
-          ]}>
-            <Text style={[
-              styles.statusText,
-              task.status === 'completed' ? styles.completedText : styles.pendingText
+      <TouchableOpacity
+          style={[
+            styles.container,
+            // Apply different styling for completed tasks
+            task.status === 'completed' && styles.completedTask
+          ]}
+          onPress={() => onPress(task.id)}
+      >
+        {/* Main content area with task details */}
+        <View style={styles.contentContainer}>
+          <Text style={styles.title}>{task.title}</Text>
+          <Text style={styles.description} numberOfLines={2}>
+            {task.description || 'No description'}
+          </Text>
+
+          {/* Metadata row with date and status badge */}
+          <View style={styles.metaRow}>
+            <Text style={styles.date}>{formatDate(task.createdAt)}</Text>
+
+            {/* Status badge with dynamic styling based on task status */}
+            <View style={[
+              styles.statusBadge,
+              task.status === 'completed' ? styles.completedBadge : styles.pendingBadge
             ]}>
-              {task.status === 'completed' ? 'Completed' : 'Pending'}
-            </Text>
+              <Text style={[
+                styles.statusText,
+                task.status === 'completed' ? styles.completedText : styles.pendingText
+              ]}>
+                {task.status === 'completed' ? 'Completed' : 'Pending'}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-      
-      <View style={styles.buttonsContainer}>
-        <TouchableOpacity 
-          style={[
-            styles.actionButton,
-            task.status === 'completed' ? styles.pendingButton : styles.completeButton
-          ]} 
-          onPress={() => onToggleStatus(task.id)}
-        >
-          <Text style={styles.actionButtonText}>
-            {task.status === 'completed' ? '↺' : '✓'}
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.deleteButton]} 
-          onPress={() => onDelete(task.id)}
-        >
-          <Text style={styles.actionButtonText}>🗑️</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+
+        {/* Action buttons container for status toggle and delete */}
+        <View style={styles.buttonsContainer}>
+          {/* Toggle status button - shows different icon based on current status */}
+          <TouchableOpacity
+              style={[
+                styles.actionButton,
+                task.status === 'completed' ? styles.pendingButton : styles.completeButton
+              ]}
+              onPress={() => onToggleStatus(task.id)}
+          >
+            <Text style={styles.actionButtonText}>
+              {task.status === 'completed' ? '↺' : '✓'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Delete task button */}
+          <TouchableOpacity
+              style={[styles.actionButton, styles.deleteButton]}
+              onPress={() => onDelete(task.id)}
+          >
+            <Text style={styles.actionButtonText}>🗑️</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
   );
 };
 
+// Styles for the component
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
@@ -126,7 +149,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#888',
   },
-  // Updated status styling to be consistent with details screen
+  // Status styling consistent with details screen
   statusBadge: {
     borderRadius: 8,
     borderWidth: 1,

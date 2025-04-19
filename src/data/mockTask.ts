@@ -12,7 +12,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: '2',
-    title: 'Read React Native Documentation',
+    title: 'Read Expo React Native Documentation',
     description: 'Learn about navigation and state management in React Native',
     createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
     status: 'pending',
@@ -23,5 +23,12 @@ export const mockTasks: Task[] = [
     description: 'Finish the React Native task manager tutorial',
     createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
     status: 'completed',
+  },
+  {
+    id: '4',
+    title: 'Walk the dog🦮',
+    description: ' Also remember to take out the trash before leaving!!',
+    createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+    status: 'pending',
   },
 ];

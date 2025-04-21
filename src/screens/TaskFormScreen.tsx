@@ -18,7 +18,7 @@ import { RootStackParamList, Task } from '../types';
 
 /**
  * Type definitions for route and navigation props
- * These ensure type safety when accessing route params or navigation methods
+ * These ensure type safety when accessing route params or navigation methods.
  */
 type TaskFormScreenRouteProp = RouteProp<RootStackParamList, 'TaskFormScreen'>;
 type TaskFormScreenNavigationProp = StackNavigationProp<RootStackParamList, 'TaskFormScreen'>;

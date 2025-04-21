@@ -1,5 +1,8 @@
 // src/screens/TaskFormScreen.tsx
 import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+
+
 import {
   View,
   Text,
@@ -125,11 +128,6 @@ const TaskFormScreen: React.FC<TaskFormScreenProps> = ({ navigation, route }) =>
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.formContainer}>
-            {/* Dynamic title based on whether we're creating or editing */}
-            <Text style={styles.screenTitle}>
-              {task ? 'Edit Task' : 'Create New Task'}
-            </Text>
-
             {/* Title input with validation */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Title <Text style={styles.required}>*</Text></Text>
@@ -186,14 +184,22 @@ const TaskFormScreen: React.FC<TaskFormScreenProps> = ({ navigation, route }) =>
 
             {/* Action buttons */}
             <View style={styles.buttonGroup}>
-              {/* Save button with dynamic text */}
+              {/* Save button with icon */}
               <TouchableOpacity
                   style={styles.saveButton}
                   onPress={handleSave}
               >
-                <Text style={styles.saveButtonText}>
-                  {task ? 'Save Changes' : 'Create Task'}
-                </Text>
+                <View style={styles.buttonContent}>
+                  <Ionicons
+                      name={task ? "save-outline" : "add-circle-outline"}
+                      size={20}
+                      color="#fff"
+                      style={styles.buttonIcon}
+                  />
+                  <Text style={styles.saveButtonText}>
+                    {task ? 'Save Changes' : 'Create Task'}
+                  </Text>
+                </View>
               </TouchableOpacity>
 
               {/* Cancel button */}
@@ -222,13 +228,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     flex: 1,
-  },
-  screenTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 24,
-    textAlign: 'center',
-    color: '#333',
   },
   inputGroup: {
     marginBottom: 20,
@@ -275,9 +274,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#007BFF',
     padding: 15,
     borderRadius: 8,
-    alignItems: 'center',
     marginBottom: 12,
   },
+
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
@@ -312,6 +311,14 @@ const styles = StyleSheet.create({
   statusTextInactive: {
     fontSize: 16,
     color: '#999',
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
 });
 

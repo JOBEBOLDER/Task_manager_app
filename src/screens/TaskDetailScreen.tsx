@@ -1,5 +1,5 @@
 // src/screens/TaskDetailScreen.tsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,17 +13,47 @@ import {
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons'; // Make sure to install expo icons
 
 /**
  * Task interface with literal types for status
+ * This ensures only valid status values can be assigned
  */
 interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'pending' | 'completed';
+  status: 'pending' | 'completed'; // Use literal union type for type safety
   createdAt: string;
+}
+
+/**
+ * Navigation parameter list for the app's navigation stack
+ * Defines the screens and their route parameters
+ */
+type RootStackParamList = {
+  Home: undefined;
+  TaskDetailScreen: {
+    task: Task;
+    onUpdate: (task: Task) => void;
+    onDelete: (id: string) => void;
+  };
+  TaskFormScreen: {
+    task?: Task;
+    onSave: (task: Task) => void;
+  };
+};
+
+// Type definitions for navigation props
+type TaskDetailScreenRouteProp = RouteProp<RootStackParamList, 'TaskDetailScreen'>;
+type TaskDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'TaskDetailScreen'>;
+
+/**
+ * Props interface for TaskDetailScreen component
+ */
+interface TaskDetailScreenProps {
+  route: TaskDetailScreenRouteProp;
+  navigation: TaskDetailScreenNavigationProp;
 }
 
 // Theme constants
@@ -59,35 +89,6 @@ const COLORS = {
   }
 };
 
-// Spacing scale for consistency across the app
-const SPACING = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32
-};
-
-// Navigation prop types
-type RootStackParamList = {
-  TaskFormScreen: { task: Task; onSave: (task: Task) => void };
-};
-
-type TaskDetailScreenRouteProp = RouteProp<{
-  params: {
-    task: Task;
-    onUpdate: (task: Task) => void;
-    onDelete: (id: string) => void;
-  };
-}, 'params'>;
-
-type TaskDetailScreenNavigationProp = StackNavigationProp<RootStackParamList>;
-
-interface TaskDetailScreenProps {
-  route: TaskDetailScreenRouteProp;
-  navigation: TaskDetailScreenNavigationProp;
-}
-
 /**
  * TaskDetailScreen displays detailed information about a single task
  * Provides options to toggle status, edit, share, or delete the task
@@ -101,13 +102,8 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }
   // Animation values
   const fadeAnim = useState(new Animated.Value(0))[0];
 
-  // Update local task state if initialTask changes
-  useEffect(() => {
-    setTask(initialTask);
-  }, [initialTask]);
-
   // Start fade-in animation when component mounts
-  useEffect(() => {
+  React.useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 300,
@@ -121,35 +117,43 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }
    * Provides an undo option via alert
    */
   const handleToggleStatus = useCallback(() => {
-    // Store the old status for undo functionality
-    const oldStatus = task.status;
-
     // Use explicit literal type for the new status for type safety
     const newStatus: 'pending' | 'completed' =
         task.status === 'completed' ? 'pending' : 'completed';
 
-    // Create updated task
-    const updatedTask = { ...task, status: newStatus };
+    const updatedTask: Task = {
+      ...task,
+      status: newStatus
+    };
 
     // Update local state
     setTask(updatedTask);
 
-    // Update parent state
+    // Call the onUpdate function passed from parent
     onUpdate(updatedTask);
 
-    // Provide undo option
+    // Show confirmation with option to undo
     Alert.alert(
         'Status Changed',
         `Task marked as ${newStatus}`,
         [
-          { text: 'OK' },
+          {
+            text: 'OK',
+            style: 'default'
+          },
           {
             text: 'Undo',
             onPress: () => {
-              const revertedTask = { ...task, status: oldStatus };
+              // Revert back with explicit type
+              const revertedStatus: 'pending' | 'completed' = task.status;
+              const revertedTask: Task = {
+                ...task,
+                status: revertedStatus
+              };
               setTask(revertedTask);
               onUpdate(revertedTask);
-            }
+            },
+            style: 'cancel'
           }
         ]
     );
@@ -166,14 +170,16 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }
         // Update local state
         setTask(updatedTask);
 
-        // Update parent state
+        // Call the onUpdate function passed from parent
         onUpdate(updatedTask);
 
-        // Alert to confirm update
-        Alert.alert(
-            'Task Updated',
-            'The task has been successfully updated.'
-        );
+        // Show a confirmation message if status was changed
+        if (updatedTask.status !== task.status) {
+          Alert.alert(
+              'Status Updated',
+              `Task is now ${updatedTask.status}`
+          );
+        }
       }
     });
   }, [navigation, task, onUpdate]);
@@ -202,7 +208,7 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }
         'Confirm Delete',
         'Are you sure you want to delete this task?',
         [
-          { text: 'Cancel' },
+          { text: 'Cancel', style: 'cancel' },
           {
             text: 'Delete',
             style: 'destructive',
@@ -236,33 +242,6 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }
     });
   }, []);
 
-  // Memoize dynamically computed styles to avoid recreation on each render
-  const computedStyles = useMemo(() => ({
-    statusBadge: [
-      styles.statusBadge,
-      task.status === 'completed' ? styles.completedBadge : styles.pendingBadge
-    ],
-    statusText: [
-      styles.statusText,
-      task.status === 'completed' ? styles.completedText : styles.pendingText
-    ],
-    toggleButton: [
-      styles.button,
-      task.status === 'completed' ? styles.pendingButton : styles.completeButton
-    ]
-  }), [task.status]);
-
-  // StatusBadge component to improve readability in render function
-  const StatusBadge = () => (
-      <View style={styles.statusContainer}>
-        <View style={computedStyles.statusBadge}>
-          <Text style={computedStyles.statusText}>
-            {task.status === 'completed' ? 'Completed' : 'Pending'}
-          </Text>
-        </View>
-      </View>
-  );
-
   return (
       <>
         <StatusBar barStyle="dark-content" />
@@ -283,14 +262,30 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }
             <Text style={styles.date}>{formatDate(task.createdAt)}</Text>
 
             <Text style={styles.sectionTitle}>Status</Text>
-            <StatusBadge />
+            {/* Status badge with styling consistent with task list */}
+            <View style={styles.statusContainer}>
+              <View style={[
+                styles.statusBadge,
+                task.status === 'completed' ? styles.completedBadge : styles.pendingBadge
+              ]}>
+                <Text style={[
+                  styles.statusText,
+                  task.status === 'completed' ? styles.completedText : styles.pendingText
+                ]}>
+                  {task.status === 'completed' ? 'Completed' : 'Pending'}
+                </Text>
+              </View>
+            </View>
           </View>
 
           {/* Action buttons */}
           <View style={styles.buttonsContainer}>
             {/* Dynamic toggle status button with icon */}
             <TouchableOpacity
-                style={computedStyles.toggleButton}
+                style={[
+                  styles.button,
+                  task.status === 'completed' ? styles.pendingButton : styles.completeButton
+                ]}
                 onPress={handleToggleStatus}
             >
               <Ionicons
@@ -345,8 +340,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
-    padding: SPACING.md,
-    margin: SPACING.md,
+    padding: 16,
+    margin: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
@@ -356,14 +351,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: SPACING.md,
+    marginBottom: 16,
     color: COLORS.text.primary,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginTop: SPACING.md,
-    marginBottom: SPACING.sm,
+    marginTop: 16,
+    marginBottom: 8,
     color: COLORS.text.secondary,
   },
   description: {
@@ -375,14 +370,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.text.secondary,
   },
+  // Status styling - updated to match task list
   statusContainer: {
-    marginTop: SPACING.xs,
+    marginTop: 8,
+    flexDirection: 'row',
   },
   statusBadge: {
-    paddingVertical: SPACING.xs,
-    paddingHorizontal: SPACING.sm,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     alignSelf: 'flex-start',
   },
   pendingBadge: {
@@ -404,14 +401,14 @@ const styles = StyleSheet.create({
     color: COLORS.status.completed.text,
   },
   buttonsContainer: {
-    margin: SPACING.md,
-    marginTop: SPACING.sm,
+    margin: 16,
+    marginTop: 8,
   },
   button: {
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -421,7 +418,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   buttonIcon: {
-    marginRight: SPACING.sm,
+    marginRight: 8,
   },
   completeButton: {
     backgroundColor: COLORS.button.complete,

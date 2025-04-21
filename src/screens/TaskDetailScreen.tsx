@@ -1,5 +1,5 @@
 // src/screens/TaskDetailScreen.tsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,82 +7,47 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-  Share,
-  StatusBar,
-  Animated
+  Share
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
 
 /**
  * Task interface with literal types for status
+ * This ensures only valid status values can be assigned
  */
 interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'pending' | 'completed';
+  status: 'pending' | 'completed'; // Use literal union type for type safety
   createdAt: string;
 }
 
-// Theme constants
-const COLORS = {
-  primary: '#3f51b5',
-  secondary: '#00bcd4',
-  background: '#f5f7fa',
-  card: '#ffffff',
-  text: {
-    primary: '#333333',
-    secondary: '#666666',
-    light: '#999999'
-  },
-  status: {
-    pending: {
-      background: '#fff8e1',
-      border: '#ffb300',
-      text: '#f57c00'
-    },
-    completed: {
-      background: '#e8f5e9',
-      border: '#4caf50',
-      text: '#4caf50'
-    }
-  },
-  button: {
-    complete: '#4caf50',
-    pending: '#ff9800',
-    share: '#9c27b0',
-    edit: '#2196f3',
-    delete: '#f44336',
-    text: '#ffffff'
-  }
-};
-
-// Spacing scale for consistency across the app
-const SPACING = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32
-};
-
-// Navigation prop types
+/**
+ * Navigation parameter list for the app's navigation stack
+ * Defines the screens and their route parameters
+ */
 type RootStackParamList = {
-  TaskFormScreen: { task: Task; onSave: (task: Task) => void };
-};
-
-type TaskDetailScreenRouteProp = RouteProp<{
-  params: {
+  Home: undefined;
+  TaskDetailScreen: {
     task: Task;
     onUpdate: (task: Task) => void;
     onDelete: (id: string) => void;
   };
-}, 'params'>;
+  TaskFormScreen: {
+    task?: Task;
+    onSave: (task: Task) => void;
+  };
+};
 
-type TaskDetailScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+// Type definitions for navigation props
+type TaskDetailScreenRouteProp = RouteProp<RootStackParamList, 'TaskDetailScreen'>;
+type TaskDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'TaskDetailScreen'>;
 
+/**
+ * Props interface for TaskDetailScreen component
+ */
 interface TaskDetailScreenProps {
   route: TaskDetailScreenRouteProp;
   navigation: TaskDetailScreenNavigationProp;
@@ -98,91 +63,84 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }
   // Local state to manage the task
   const [task, setTask] = useState<Task>(initialTask);
 
-  // Animation values
-  const fadeAnim = useState(new Animated.Value(0))[0];
-
-  // Update local task state if initialTask changes
-  useEffect(() => {
-    setTask(initialTask);
-  }, [initialTask]);
-
-  // Start fade-in animation when component mounts
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true
-    }).start();
-  }, []);
-
   /**
    * Toggles task status between 'pending' and 'completed'
    * Updates both local state and parent component
    * Provides an undo option via alert
    */
-  const handleToggleStatus = useCallback(() => {
-    // Store the old status for undo functionality
-    const oldStatus = task.status;
-
+  const handleToggleStatus = () => {
     // Use explicit literal type for the new status for type safety
     const newStatus: 'pending' | 'completed' =
         task.status === 'completed' ? 'pending' : 'completed';
 
-    // Create updated task
-    const updatedTask = { ...task, status: newStatus };
+    const updatedTask: Task = {
+      ...task,
+      status: newStatus
+    };
 
     // Update local state
     setTask(updatedTask);
 
-    // Update parent state
+    // Call the onUpdate function passed from parent
     onUpdate(updatedTask);
 
-    // Provide undo option
+    // Show confirmation with option to undo
     Alert.alert(
         'Status Changed',
         `Task marked as ${newStatus}`,
         [
-          { text: 'OK' },
+          {
+            text: 'OK',
+            style: 'default'
+          },
           {
             text: 'Undo',
             onPress: () => {
-              const revertedTask = { ...task, status: oldStatus };
+              // Revert back with explicit type
+              const revertedStatus: 'pending' | 'completed' = task.status;
+              const revertedTask: Task = {
+                ...task,
+                status: revertedStatus
+              };
               setTask(revertedTask);
               onUpdate(revertedTask);
-            }
+            },
+            style: 'cancel'
           }
         ]
     );
-  }, [task, onUpdate]);
+  };
 
   /**
    * Navigates to TaskFormScreen for editing
    * Passes the current task and a callback for handling updates
    */
-  const handleEdit = useCallback(() => {
+  const handleEdit = () => {
     navigation.navigate('TaskFormScreen', {
       task,
       onSave: (updatedTask: Task) => {
         // Update local state
         setTask(updatedTask);
 
-        // Update parent state
+        // Call the onUpdate function passed from parent
         onUpdate(updatedTask);
 
-        // Alert to confirm update
-        Alert.alert(
-            'Task Updated',
-            'The task has been successfully updated.'
-        );
+        // Show a confirmation message if status was changed
+        if (updatedTask.status !== task.status) {
+          Alert.alert(
+              'Status Updated',
+              `Task is now ${updatedTask.status}`
+          );
+        }
       }
     });
-  }, [navigation, task, onUpdate]);
+  };
 
   /**
    * Shares task details using the native Share API
    * Formats task information for sharing
    */
-  const handleShare = useCallback(async () => {
+  const handleShare = async () => {
     try {
       await Share.share({
         message: `Task: ${task.title}\nDescription: ${task.description}\nStatus: ${task.status}`,
@@ -191,148 +149,115 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }
     } catch (error) {
       Alert.alert('Error', 'Could not share the task');
     }
-  }, [task]);
+  };
 
   /**
    * Prompts for confirmation before deleting a task
    * Returns to previous screen after deletion
    */
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     Alert.alert(
         'Confirm Delete',
         'Are you sure you want to delete this task?',
         [
-          { text: 'Cancel' },
+          { text: 'Cancel', style: 'cancel' },
           {
             text: 'Delete',
             style: 'destructive',
             onPress: () => {
-              // Fade out animation before navigation
-              Animated.timing(fadeAnim, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true
-              }).start(() => {
-                onDelete(task.id);
-                navigation.goBack();
-              });
+              onDelete(task.id);
+              navigation.goBack();
             }
           }
         ]
     );
-  }, [navigation, task.id, onDelete, fadeAnim]);
+  };
 
   /**
    * Formats a date string to a more readable format
    * @param dateString - ISO date string to format
    * @returns Formatted date string (e.g., "April 19, 2025")
    */
-  const formatDate = useCallback((dateString: string) => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
-  }, []);
-
-  // Memoize dynamically computed styles to avoid recreation on each render
-  const computedStyles = useMemo(() => ({
-    statusBadge: [
-      styles.statusBadge,
-      task.status === 'completed' ? styles.completedBadge : styles.pendingBadge
-    ],
-    statusText: [
-      styles.statusText,
-      task.status === 'completed' ? styles.completedText : styles.pendingText
-    ],
-    toggleButton: [
-      styles.button,
-      task.status === 'completed' ? styles.pendingButton : styles.completeButton
-    ]
-  }), [task.status]);
-
-  // StatusBadge component to improve readability in render function
-  const StatusBadge = () => (
-      <View style={styles.statusContainer}>
-        <View style={computedStyles.statusBadge}>
-          <Text style={computedStyles.statusText}>
-            {task.status === 'completed' ? 'Completed' : 'Pending'}
-          </Text>
-        </View>
-      </View>
-  );
+  };
 
   return (
-      <>
-        <StatusBar barStyle="dark-content" />
-        <Animated.ScrollView
-            style={[styles.container, { opacity: fadeAnim }]}
-            showsVerticalScrollIndicator={false}
-        >
-          {/* Task details card */}
-          <View style={styles.card}>
-            <Text style={styles.title}>{task.title}</Text>
+      <ScrollView style={styles.container}>
+        {/* Task details card */}
+        <View style={styles.card}>
+          <Text style={styles.title}>{task.title}</Text>
 
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>
-              {task.description || 'No description'}
-            </Text>
+          <Text style={styles.sectionTitle}>Description</Text>
+          <Text style={styles.description}>
+            {task.description || 'No description'}
+          </Text>
 
-            <Text style={styles.sectionTitle}>Created Date</Text>
-            <Text style={styles.date}>{formatDate(task.createdAt)}</Text>
+          <Text style={styles.sectionTitle}>Created Date</Text>
+          <Text style={styles.date}>{formatDate(task.createdAt)}</Text>
 
-            <Text style={styles.sectionTitle}>Status</Text>
-            <StatusBadge />
-          </View>
-
-          {/* Action buttons */}
-          <View style={styles.buttonsContainer}>
-            {/* Dynamic toggle status button with icon */}
-            <TouchableOpacity
-                style={computedStyles.toggleButton}
-                onPress={handleToggleStatus}
-            >
-              <Ionicons
-                  name={task.status === 'completed' ? 'reload' : 'checkmark'}
-                  size={18}
-                  color="#fff"
-                  style={styles.buttonIcon}
-              />
-              <Text style={styles.buttonText}>
-                {task.status === 'completed' ? 'Mark as Pending' : 'Mark as Completed'}
+          <Text style={styles.sectionTitle}>Status</Text>
+          {/* Status badge with styling consistent with task list */}
+          <View style={styles.statusContainer}>
+            <View style={[
+              styles.statusBadge,
+              task.status === 'completed' ? styles.completedBadge : styles.pendingBadge
+            ]}>
+              <Text style={[
+                styles.statusText,
+                task.status === 'completed' ? styles.completedText : styles.pendingText
+              ]}>
+                {task.status === 'completed' ? 'Completed' : 'Pending'}
               </Text>
-            </TouchableOpacity>
-
-            {/* Share button with icon */}
-            <TouchableOpacity
-                style={[styles.button, styles.shareButton]}
-                onPress={handleShare}
-            >
-              <Ionicons name="share-outline" size={18} color="#fff" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Share</Text>
-            </TouchableOpacity>
-
-            {/* Edit button with icon */}
-            <TouchableOpacity
-                style={[styles.button, styles.editButton]}
-                onPress={handleEdit}
-            >
-              <Ionicons name="create-outline" size={18} color="#fff" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Edit</Text>
-            </TouchableOpacity>
-
-            {/* Delete button with icon */}
-            <TouchableOpacity
-                style={[styles.button, styles.deleteButton]}
-                onPress={handleDelete}
-            >
-              <Ionicons name="trash-outline" size={18} color="#fff" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Delete</Text>
-            </TouchableOpacity>
+            </View>
           </View>
-        </Animated.ScrollView>
-      </>
+        </View>
+
+        {/* Action buttons */}
+        <View style={styles.buttonsContainer}>
+          {/* Dynamic toggle status button */}
+          <TouchableOpacity
+              style={[
+                styles.button,
+                task.status === 'completed' ? styles.pendingButton : styles.completeButton
+              ]}
+              onPress={handleToggleStatus}
+          >
+            <Text style={styles.buttonText}>
+              {task.status === 'completed' ? 'Mark as Pending' : 'Mark as Completed'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Share button */}
+          <TouchableOpacity
+              style={[styles.button, styles.shareButton]}
+              onPress={handleShare}
+          >
+            <Text style={styles.buttonText}>Share</Text>
+          </TouchableOpacity>
+
+          {/* Edit button */}
+          <TouchableOpacity
+              style={[styles.button, styles.editButton]}
+              onPress={handleEdit}
+          >
+            <Text style={styles.buttonText}>Edit</Text>
+          </TouchableOpacity>
+
+          {/* Delete button */}
+          <TouchableOpacity
+              style={[styles.button, styles.deleteButton]}
+              onPress={handleDelete}
+          >
+            <Text style={styles.buttonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
   );
 };
 
@@ -340,106 +265,98 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ navigation, route }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#f8f8f8',
   },
   card: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: SPACING.md,
-    margin: SPACING.md,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 16,
+    margin: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: SPACING.md,
-    color: COLORS.text.primary,
+    marginBottom: 16,
+    color: '#333',
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginTop: SPACING.md,
-    marginBottom: SPACING.sm,
-    color: COLORS.text.secondary,
+    marginTop: 12,
+    marginBottom: 4,
+    color: '#666',
   },
   description: {
     fontSize: 16,
-    lineHeight: 24,
-    color: COLORS.text.primary,
+    lineHeight: 22,
+    color: '#444',
   },
   date: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: '#666',
   },
+  // Status styling - updated to match task list
   statusContainer: {
-    marginTop: SPACING.xs,
+    marginTop: 8,
+    flexDirection: 'row',
   },
   statusBadge: {
-    paddingVertical: SPACING.xs,
-    paddingHorizontal: SPACING.sm,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     alignSelf: 'flex-start',
   },
   pendingBadge: {
-    backgroundColor: COLORS.status.pending.background,
-    borderColor: COLORS.status.pending.border,
+    backgroundColor: '#fff8e1',
+    borderColor: '#ffb300',
   },
   completedBadge: {
-    backgroundColor: COLORS.status.completed.background,
-    borderColor: COLORS.status.completed.border,
+    backgroundColor: '#e8f5e9',
+    borderColor: '#4caf50',
   },
   statusText: {
     fontWeight: '600',
     fontSize: 16,
   },
   pendingText: {
-    color: COLORS.status.pending.text,
+    color: '#f57c00',
   },
   completedText: {
-    color: COLORS.status.completed.text,
+    color: '#4caf50',
   },
   buttonsContainer: {
-    margin: SPACING.md,
-    marginTop: SPACING.sm,
+    margin: 16,
+    marginTop: 0,
   },
   button: {
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: SPACING.sm,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-    elevation: 1,
-  },
-  buttonIcon: {
-    marginRight: SPACING.sm,
+    marginBottom: 12,
   },
   completeButton: {
-    backgroundColor: COLORS.button.complete,
+    backgroundColor: '#4caf50',
   },
   pendingButton: {
-    backgroundColor: COLORS.button.pending,
+    backgroundColor: '#ff9800',
   },
   shareButton: {
-    backgroundColor: COLORS.button.share,
+    backgroundColor: '#9c27b0',
   },
   editButton: {
-    backgroundColor: COLORS.button.edit,
+    backgroundColor: '#2196f3',
   },
   deleteButton: {
-    backgroundColor: COLORS.button.delete,
+    backgroundColor: '#f44336',
   },
   buttonText: {
-    color: COLORS.button.text,
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
